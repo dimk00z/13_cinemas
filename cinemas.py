@@ -28,7 +28,8 @@ def parse_afisha_list(raw_html, cinemas_count=5):
             'name': cinema_name,
             'count_of_cinemas': count_of_cinemas,
             'kinopoisk_raiting': cinema_info_from_kinopoisk['rating'],
-            'kinopoisk_raiting_count': cinema_info_from_kinopoisk['raiting_count']})
+            'kinopoisk_raiting_count':
+            cinema_info_from_kinopoisk['raiting_count']})
     return cinemas
 
 
@@ -113,14 +114,14 @@ def fetch_movie_info(movie_title, proxies_list):
 
 
 def output_movies_to_console(movies, top_movies_count=10):
-    for movie in sorted(movies, key=itemgetter('kinopoisk_raiting_count',
-                                               'count_of_cinemas'))[:top_movies_count]:
+    for movie in sorted(movies,
+                        key=itemgetter('kinopoisk_raiting_count',
+                                       'count_of_cinemas'))[:top_movies_count]:
         print('{} имеет рейтинг {}, оценили\
-         {} человек и идет в {} кинотеатрах'.format(movie['name'],
-                                                    movie['kinopoisk_raiting'],
-                                                    movie[
-                                                        'kinopoisk_raiting_count'],
-                                                    movie['count_of_cinemas']))
+{} человек и идет в {} кинотеатрах'.format(movie['name'],
+                                           movie['kinopoisk_raiting'],
+                                           movie['kinopoisk_raiting_count'],
+                                           movie['count_of_cinemas']))
 
 
 if __name__ == '__main__':
