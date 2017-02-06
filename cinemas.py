@@ -1,9 +1,8 @@
-import requests
 import random
-import logging
+import requests
+import progressbar
 from bs4 import BeautifulSoup
-
-LOGGER = logging.getLogger('info')
+from operator import itemgetter
 
 
 def fetch_afisha_page():
@@ -17,10 +16,9 @@ def parse_afisha_list(raw_html, cinemas_count=5):
     cinemas_content = (soup.find_all(
         class_='object s-votes-hover-area collapsed'))
     proxies_list = get_proxy()
+    bar = progressbar.ProgressBar(max_value=len(cinemas_content))
     for cinema_number, cinema in enumerate(cinemas_content):
-        # loading_percents = ((cinema_number + 1) / len(cinemas_content)) * 100
-        # print("Загруженно {} %".format(str(int(loading_percents))))
-        print(cinema_number, len(cinemas_content))
+        bar.update(cinema_number + 1)
         cinema_name = cinema.find(class_='usetags').text
         count_of_cinemas = 0 if not cinema.findAll(class_="b-td-item") \
             else len(cinema.findAll(class_="b-td-item"))
@@ -31,12 +29,7 @@ def parse_afisha_list(raw_html, cinemas_count=5):
             'count_of_cinemas': count_of_cinemas,
             'kinopoisk_raiting': cinema_info_from_kinopoisk['rating'],
             'kinopoisk_raiting_count': cinema_info_from_kinopoisk['raiting_count']})
-
-    print(cinemas)
     return cinemas
-
-
-# b-theme-schedule m-schedule-with-collapse
 
 
 def get_proxy():
@@ -83,6 +76,9 @@ def get_random_user_agent():
 
 
 def parse_kinopoisk_movie_page(movie_page):
+    if not movie_page:
+        return {'rating': None,
+                'raiting_count': None}
     soup = BeautifulSoup(movie_page, 'html.parser')
     rating = soup.find(class_="rating_ball").text if soup.find(
         class_="rating_ball") else 0
@@ -93,14 +89,12 @@ def parse_kinopoisk_movie_page(movie_page):
 
 
 def fetch_movie_info(movie_title, proxies_list):
-    LOGGER.info("parse : %s" % movie_title)
     try:
-
         kinopoisk_url = 'https://www.kinopoisk.ru/index.php'
         params = {'kp_query': movie_title,
                   'first': 'yes'}
         proxy = {"http": random.choice(proxies_list)}
-        timeout = random.randrange(3, 6)
+        timeout = random.randrange(2, 10)
         headers = {"Connection": "close",
                    "User-Agent": get_random_user_agent()}
         movie_page = requests.session().get(kinopoisk_url,
@@ -118,12 +112,18 @@ def fetch_movie_info(movie_title, proxies_list):
         return movie_page.content
 
 
-def output_movies_to_console(movies):
-    pass
+def output_movies_to_console(movies, top_movies_count=10):
+    for movie in sorted(movies, key=itemgetter('kinopoisk_raiting_count',
+                                               'count_of_cinemas'))[:top_movies_count]:
+        print('{} имеет рейтинг {}, оценили\
+         {} человек и идет в {} кинотеатрах'.format(movie['name'],
+                                                    movie['kinopoisk_raiting'],
+                                                    movie[
+                                                        'kinopoisk_raiting_count'],
+                                                    movie['count_of_cinemas']))
 
 
 if __name__ == '__main__':
-    # afisha_html = fetch_afisha_page()
-    # parse_afisha_list(afisha_html)
-    print(fetch_movie_info("Притяжение", get_proxy()))
-
+    afisha_html = fetch_afisha_page()
+    cinemas = parse_afisha_list(afisha_html)
+    output_movies_to_console(cinemas)
