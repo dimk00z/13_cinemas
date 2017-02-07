@@ -10,7 +10,7 @@ def fetch_afisha_page():
     return requests.get(afisha_url).content
 
 
-def parse_afisha_list(raw_html, cinemas_count=5):
+def parse_afisha_list(raw_html, cinemas_count=10):
     cinemas = []
     soup = BeautifulSoup(raw_html, 'html.parser')
     cinemas_content = (soup.find_all(
@@ -78,8 +78,8 @@ def get_random_user_agent():
 
 def parse_kinopoisk_movie_page(movie_page):
     if not movie_page:
-        return {'rating': None,
-                'raiting_count': None}
+        return {'rating': 0,
+                'raiting_count': 0}
     soup = BeautifulSoup(movie_page, 'html.parser')
     rating = soup.find(class_="rating_ball").text if soup.find(
         class_="rating_ball") else 0
@@ -114,10 +114,13 @@ def fetch_movie_info(movie_title, proxies_list):
 
 
 def output_movies_to_console(movies, top_movies_count=10):
+    print()
     for movie in sorted(movies,
-                        key=itemgetter('kinopoisk_raiting_count',
-                                       'count_of_cinemas'))[:top_movies_count]:
-        print('{} имеет рейтинг {}, оценили\
+                        key=itemgetter('kinopoisk_raiting',
+                                       'kinopoisk_raiting_count'),
+                        reverse=True)[:top_movies_count]:
+
+        print('{} имеет рейтинг {}, оценили \
 {} человек и идет в {} кинотеатрах'.format(movie['name'],
                                            movie['kinopoisk_raiting'],
                                            movie['kinopoisk_raiting_count'],
