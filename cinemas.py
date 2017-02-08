@@ -10,26 +10,33 @@ def fetch_afisha_page():
     return requests.get(afisha_url).content
 
 
-def parse_afisha_list(raw_html, cinemas_count=10):
+def parse_afisha_list(raw_html, top_cinemas_count=10):
     cinemas = []
     soup = BeautifulSoup(raw_html, 'html.parser')
     cinemas_content = (soup.find_all(
         class_='object s-votes-hover-area collapsed'))
-    proxies_list = get_proxy()
-    bar = progressbar.ProgressBar(max_value=len(cinemas_content))
-    for cinema_number, cinema in enumerate(cinemas_content):
-        bar.update(cinema_number + 1)
+    for cinema in cinemas_content:
         cinema_name = cinema.find(class_='usetags').text
         count_of_cinemas = 0 if not cinema.findAll(class_="b-td-item") \
             else len(cinema.findAll(class_="b-td-item"))
-        cinema_info_from_kinopoisk = parse_kinopoisk_movie_page(
-            fetch_movie_info(cinema_name, proxies_list))
         cinemas.append({
             'name': cinema_name,
-            'count_of_cinemas': count_of_cinemas,
-            'kinopoisk_raiting': cinema_info_from_kinopoisk['rating'],
-            'kinopoisk_raiting_count':
-            cinema_info_from_kinopoisk['raiting_count']})
+            'count_of_cinemas': count_of_cinemas})
+    return sorted(cinemas, key=itemgetter('count_of_cinemas'),
+                  reverse=True)[:top_cinemas_count]
+
+
+def get_raitings_from_kinopoisk(cinemas):
+    proxies_list = get_proxy()
+    bar = progressbar.ProgressBar(max_value=len(cinemas))
+    for cinema_number, cinema in enumerate(cinemas):
+        bar.update(cinema_number + 1)
+        cinema_info_from_kinopoisk = parse_kinopoisk_movie_page(
+            fetch_movie_info(cinema['name'], proxies_list))
+        cinemas[cinema_number][
+            'kinopoisk_raiting'] = cinema_info_from_kinopoisk['rating']
+        cinemas[cinema_number]['kinopoisk_raiting_count'] =\
+            cinema_info_from_kinopoisk['raiting_count']
     return cinemas
 
 
@@ -113,13 +120,10 @@ def fetch_movie_info(movie_title, proxies_list):
         return movie_page.content
 
 
-def output_movies_to_console(movies, top_movies_count=10):
+def output_movies_to_console(movies):
     print()
-    for movie in sorted(movies,
-                        key=itemgetter('kinopoisk_raiting',
-                                       'kinopoisk_raiting_count'),
-                        reverse=True)[:top_movies_count]:
-
+    for movie in sorted(movies, key=itemgetter('kinopoisk_raiting'),
+                        reverse=True):
         print('{} имеет рейтинг {}, оценили \
 {} человек и идет в {} кинотеатрах'.format(movie['name'],
                                            movie['kinopoisk_raiting'],
@@ -130,4 +134,5 @@ def output_movies_to_console(movies, top_movies_count=10):
 if __name__ == '__main__':
     afisha_html = fetch_afisha_page()
     cinemas = parse_afisha_list(afisha_html)
-    output_movies_to_console(cinemas)
+    cinemas_with_kinopoisk_raiting = get_raitings_from_kinopoisk(cinemas)
+    output_movies_to_console(cinemas_with_kinopoisk_raiting)
